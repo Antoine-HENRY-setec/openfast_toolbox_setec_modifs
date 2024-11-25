@@ -4,14 +4,14 @@ import pandas as pd
 import numpy as np
 import re
 
-import openfast_toolbox.io as weio
-from openfast_toolbox.common import PYFASTException as WELIBException
+import openfast_toolbox.openfast_toolbox.io as weio
+from openfast_toolbox.openfast_toolbox.common import PYFASTException as WELIBException
 
 # --- fast libraries
-from openfast_toolbox.io.fast_input_file import FASTInputFile
-from openfast_toolbox.io.fast_output_file import FASTOutputFile
-from openfast_toolbox.io.fast_input_deck import FASTInputDeck
-import openfast_toolbox.fastfarm.fastfarm as fastfarm
+from openfast_toolbox.openfast_toolbox.io.fast_input_file import FASTInputFile
+from openfast_toolbox.openfast_toolbox.io.fast_output_file import FASTOutputFile
+from openfast_toolbox.openfast_toolbox.io.fast_input_deck import FASTInputDeck
+import openfast_toolbox.openfast_toolbox.fastfarm.fastfarm as fastfarm
 
 # --------------------------------------------------------------------------------}
 # --- Tools for IO 

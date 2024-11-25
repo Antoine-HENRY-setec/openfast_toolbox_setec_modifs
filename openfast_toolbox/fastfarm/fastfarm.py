@@ -2,10 +2,10 @@ import os
 import glob
 import numpy as np
 import pandas as pd
-from openfast_toolbox.io.fast_input_file import FASTInputFile
-from openfast_toolbox.io.fast_output_file import FASTOutputFile
-from openfast_toolbox.io.turbsim_file import TurbSimFile
-import openfast_toolbox.postpro as fastlib
+from openfast_toolbox.openfast_toolbox.io.fast_input_file import FASTInputFile
+from openfast_toolbox.openfast_toolbox.io.fast_output_file import FASTOutputFile
+from openfast_toolbox.openfast_toolbox.io.turbsim_file import TurbSimFile
+import openfast_toolbox.openfast_toolbox.postpro as fastlib
 
 # --------------------------------------------------------------------------------}
 # --- Small helper functions

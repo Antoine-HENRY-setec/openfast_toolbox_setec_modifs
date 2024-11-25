@@ -1,6 +1,6 @@
 """Initialize everything"""
 import os
-from openfast_toolbox.common import *
+from openfast_toolbox.openfast_toolbox.common import *
 # Make main io tools available
 from .io import read
 from .io.fast_input_file import FASTInputFile

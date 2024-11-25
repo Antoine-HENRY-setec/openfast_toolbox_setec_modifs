@@ -13,8 +13,8 @@ import re
 from pathlib import Path
 
 # --- Fast libraries
-from openfast_toolbox.io.fast_input_file import FASTInputFile
-from openfast_toolbox.io.fast_output_file import FASTOutputFile
+# from openfast_toolbox.openfast_toolbox.io.fast_input_file import FASTInputFile
+# from openfast_toolbox.openfast_toolbox.io.fast_output_file import FASTOutputFile
 
 FAST_EXE='openfast'
 
