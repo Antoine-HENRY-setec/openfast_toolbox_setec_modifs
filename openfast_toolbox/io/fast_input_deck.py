@@ -18,7 +18,7 @@ class FASTInputDeck(dict):
         INPUTS:
           - fullFstPath: 
           - readlist: list of module files to be read, or ['all'], modules are identified as follows:
-                ['Fst','ED','AD','BD','BDbld','EDtwr','EDbld','ADbld','AF','AC','IW','HD','SrvD','SD','MD']
+                ['Fst','ED','AD','BD','BDbld','EDtwr','EDbld','ADbld','AF','AC','IW','HD', 'SeaSt', 'SrvD','SD','MD']
                 where: 
                  AF: airfoil polars
                  AC: airfoil coordinates (if present)
@@ -36,7 +36,7 @@ class FASTInputDeck(dict):
         if not type(self.readlist) is list:
             self.readlist=[readlist]
         if 'all' in self.readlist:
-            self.readlist = ['Fst','ED','AD','BD','BDbld','EDtwr','EDbld','ADbld','AF','AC','IW','HD','SrvD','SD','MD']
+            self.readlist = ['Fst','ED','AD','BD','BDbld','EDtwr','EDbld','ADbld','AF','AC','IW','HD','SeaSt','SrvD','SD','MD']
         else:
             self.readlist = ['Fst']+self.readlist
 
@@ -276,6 +276,10 @@ class FASTInputDeck(dict):
             # HydroDyn
             if self.fst_vt['Fst']['CompHydro']== 1:
                 self.fst_vt['HydroDyn'] = self._read(self.fst_vt['Fst']['HydroFile'],'HD')
+
+            # SeaState
+            if self.fst_vt['Fst']['CompSeaSt']== 1:
+                self.fst_vt['SeaState'] = self._read(self.fst_vt['Fst']['SeaStFile'],'SeaSt')
 
             # SubDyn
             if self.fst_vt['Fst']['CompSub'] == 1:
