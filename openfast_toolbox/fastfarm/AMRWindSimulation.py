@@ -25,7 +25,8 @@ class AMRWindSimulation:
                     dt_hr = None, dt_lr = None,
                     mod_wake = None,
                     level_lr = 0,
-                    level_hr = -1):
+                    level_hr = -1, 
+                    verbose=1):
         '''
         Values from the AMR-Wind input file
         Inputs:
@@ -79,6 +80,7 @@ class AMRWindSimulation:
         self.mod_wake           = mod_wake
         self.level_lr           = level_lr
         self.level_hr           = level_hr
+        self.verbose            = verbose
 
         # Placeholder variables, to be calculated by FFCaseCreation
         self.output_frequency_lr = None
@@ -175,6 +177,11 @@ class AMRWindSimulation:
         # Check that level_lr is >= 0
         # check that level_hr is <=self.max_level
 
+        # For convenience, the turbines should not be zero-indexed
+        if 'name' in self.wts[0]:
+            if self.wts[0]['name'] != 'T1':
+                if self.verbose>0: print(f"--- WARNING: Recommended turbine numbering should start at 1. Currently it is zero-indexed.")
+
 
         # Flags of given/calculated spatial resolution for warning/error printing purposes
         self.given_ds_hr = False
@@ -186,7 +193,7 @@ class AMRWindSimulation:
         if self.ds_lr is not None:
             warn_msg += f"--- WARNING: LOW-RES SPATIAL RESOLUTION GIVEN. CONVERTING FATAL ERRORS ON LOW-RES BOX CHECKS TO WARNINGS. ---\n"
             self.given_ds_lr = True
-        print(f'{warn_msg}\n')
+        if self.verbose>0: print(f'{warn_msg}\n')
         a=1
 
 
@@ -329,8 +336,13 @@ class AMRWindSimulation:
 
         # Perform some checks
         if self.ds_high_les < self.ds_max_at_hr_level:
-            raise ValueError(f"AMR-Wind grid spacing of {self.ds_max_at_hr_level} m at the high-res box level of {self.level_hr} is too coarse for "\
-                             f"the high resolution domain! AMR-Wind grid spacing at level {self.level_hr} must be at least {self.ds_high_les} m.")
+            error_msg = f"AMR-Wind grid spacing of {self.ds_max_at_hr_level} m at the high-res box level of {self.level_hr} is too coarse for "\
+                        f"the high resolution domain. AMR-Wind grid spacing at level {self.level_hr} must be at least {self.ds_high_les} m."
+            if self.given_ds_hr:
+                if self.verbose>0: print(f'WARNING: {error_msg}')
+            else:
+                raise ValueError(error_msg)
+
 
         if self.ds_low_les < self.ds_max_at_lr_level:
             error_msg = f"AMR-Wind grid spacing of {self.ds_max_at_lr_level} at the low-res box level of {self.level_lr} is too coarse for "\
@@ -338,8 +350,8 @@ class AMRWindSimulation:
                         f"If you can afford to have {self.ds_low_les} m on AMR-Wind for the low-res box, do so. If you cannot, add `ds_lr={self.ds_max_at_lr_level}` " \
                         f"to the call to `AMRWindSimulation`. Note that sampled values will no longer be at the cell centers, as you will be requesting "\
                         f"sampling at {self.ds_low_les} m while the underlying grid will be at {self.ds_max_at_lr_level} m.\n --- SUPRESSING FURTHER ERRORS ---"
-            if self.given_ds_hr:
-                print(f'WARNING: {error_msg}')
+            if self.given_ds_lr:
+                if self.verbose>0: print(f'WARNING: {error_msg}')
             else:
                 raise ValueError(error_msg)
 
@@ -370,7 +382,7 @@ class AMRWindSimulation:
         # For curled wake model: ds_lr_max = self.cmeander_max * self.dt_low_les * self.vhub**2 / 5
 
         ds_low_les = getMultipleOf(ds_lr_max, multipleof=self.ds_hr) 
-        print(f"Low-res spatial resolution should be at least {ds_lr_max:.2f} m, but since it needs to be a multiple of high-res "\
+        if self.verbose>0: print(f"Low-res spatial resolution should be at least {ds_lr_max:.2f} m, but since it needs to be a multiple of high-res "\
               f"resolution of {self.ds_hr}, we pick ds_low to be {ds_low_les} m")
 
         #self.ds_lr = self.ds_low_les
@@ -624,13 +636,13 @@ class AMRWindSimulation:
         		f"AMR-Wind grid (subset): {amr_xyzgrid_at_lhr_level_cc[amr_index  ]}, {amr_xyzgrid_at_lhr_level_cc[amr_index+1]}, "\
         		f"{amr_xyzgrid_at_lhr_level_cc[amr_index+2]}, {amr_xyzgrid_at_lhr_level_cc[amr_index+3]}, ..."
             if self.given_ds_lr:
-                print(f'WARNING: {error_msg}')
+                if self.verbose>0: print(f'WARNING: {error_msg}')
             else:
                 raise ValueError(error_msg)
 
 
 
-    def write_sampling_params(self, out=None, overwrite=False):
+    def write_sampling_params(self, out=None, format='netcdf', overwrite=False):
         '''
         Write out text that can be used for the sampling planes in an 
           AMR-Wind input file
@@ -642,6 +654,8 @@ class AMRWindSimulation:
             If saving to a file, whether or not to overwrite potentially
             existing file
         '''
+        if format not in ['netcdf','native']:
+            raise ValueError(f'format should be either native or netcdf')
 
         # Write time step information for consistenty with sampling frequency
         s = f"time.fixed_dt    = {self.dt}\n\n"
@@ -652,13 +666,13 @@ class AMRWindSimulation:
         sampling_labels_lr_str = " ".join(str(item) for item in self.sampling_labels_lr)
         sampling_labels_hr_str = " ".join(str(item) for item in self.sampling_labels_hr)
         s += f"#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#\n"
-        s += f"#          POST-Processing              #\n"
+        s += f"#          POST-PROCESSING              #\n"
         s += f"#.......................................#\n"
         s += f"# Sampling info generated by AMRWindSamplingCreation.py on {self.curr_datetime}\n"
         s += f"incflo.post_processing                = {self.postproc_name_lr} {self.postproc_name_hr} # averaging\n\n\n"
 
         s += f"# ---- Low-res sampling parameters ----\n"
-        s += f"{self.postproc_name_lr}.output_format    = netcdf\n"
+        s += f"{self.postproc_name_lr}.output_format    = {format}\n"
         s += f"{self.postproc_name_lr}.output_frequency = {self.output_frequency_lr}\n"
         s += f"{self.postproc_name_lr}.fields           = velocity # temperature tke\n"
         s += f"{self.postproc_name_lr}.labels           = {sampling_labels_lr_str}\n\n"
@@ -667,19 +681,19 @@ class AMRWindSimulation:
         zoffsets_lr_str = " ".join(str(item) for item in self.zoffsets_lr)
 
         s += f"# Low sampling grid spacing = {self.ds_lr} m\n"
-        s += f"{self.postproc_name_lr}.Low.type         = PlaneSampler\n"
-        s += f"{self.postproc_name_lr}.Low.num_points   = {self.nx_lr} {self.ny_lr}\n"
-        s += f"{self.postproc_name_lr}.Low.origin       = {self.xlow_lr:.4f} {self.ylow_lr:.4f} {self.zlow_lr:.4f}\n"  # Round the float output
-        s += f"{self.postproc_name_lr}.Low.axis1        = {self.xdist_lr:.4f} 0.0 0.0\n"  # Assume: axis1 oriented parallel to AMR-Wind x-axis
-        s += f"{self.postproc_name_lr}.Low.axis2        = 0.0 {self.ydist_lr:.4f} 0.0\n"  # Assume: axis2 oriented parallel to AMR-Wind y-axis
-        s += f"{self.postproc_name_lr}.Low.normal       = 0.0 0.0 1.0\n"
-        s += f"{self.postproc_name_lr}.Low.offsets      = {zoffsets_lr_str}\n\n\n"
+        s += f"{self.postproc_name_lr}.Low.type          = PlaneSampler\n"
+        s += f"{self.postproc_name_lr}.Low.num_points    = {self.nx_lr} {self.ny_lr}\n"
+        s += f"{self.postproc_name_lr}.Low.origin        = {self.xlow_lr:.4f} {self.ylow_lr:.4f} {self.zlow_lr:.4f}\n"  # Round the float output
+        s += f"{self.postproc_name_lr}.Low.axis1         = {self.xdist_lr:.4f} 0.0 0.0\n"  # Assume: axis1 oriented parallel to AMR-Wind x-axis
+        s += f"{self.postproc_name_lr}.Low.axis2         = 0.0 {self.ydist_lr:.4f} 0.0\n"  # Assume: axis2 oriented parallel to AMR-Wind y-axis
+        s += f"{self.postproc_name_lr}.Low.offset_vector = 0.0 0.0 1.0\n"
+        s += f"{self.postproc_name_lr}.Low.offsets       = {zoffsets_lr_str}\n\n\n"
 
         s += f"# ---- High-res sampling parameters ----\n"
-        s += f"{self.postproc_name_hr}.output_format    = netcdf\n"
-        s += f"{self.postproc_name_hr}.output_frequency = {self.output_frequency_hr}\n"
-        s += f"{self.postproc_name_hr}.fields           = velocity # temperature tke\n"
-        s += f"{self.postproc_name_hr}.labels           = {sampling_labels_hr_str}\n"
+        s += f"{self.postproc_name_hr}.output_format     = {format}\n"
+        s += f"{self.postproc_name_hr}.output_frequency  = {self.output_frequency_hr}\n"
+        s += f"{self.postproc_name_hr}.fields            = velocity # temperature tke\n"
+        s += f"{self.postproc_name_hr}.labels            = {sampling_labels_hr_str}\n"
 
         # Write out high resolution sampling plane info
         for turbkey in self.hr_domains:
@@ -704,13 +718,13 @@ class AMRWindSimulation:
             zoffsets_hr_str = " ".join(str(item) for item in zoffsets_hr)
 
             s += f"\n# Turbine {wt_name} with base at (x,y,z) = ({wt_x:.4f}, {wt_y:.4f}, {wt_z:.4f}), with hh = {wt_h}, D = {wt_D}, grid spacing = {self.ds_hr} m\n"
-            s += f"{self.postproc_name_hr}.{sampling_name}.type         = PlaneSampler\n"
-            s += f"{self.postproc_name_hr}.{sampling_name}.num_points   = {nx_hr} {ny_hr}\n"
-            s += f"{self.postproc_name_hr}.{sampling_name}.origin       = {xlow_hr:.4f} {ylow_hr:.4f} {zlow_hr:.4f}\n"  # Round the float output
-            s += f"{self.postproc_name_hr}.{sampling_name}.axis1        = {xdist_hr:.4f} 0.0 0.0\n"  # Assume: axis1 oriented parallel to AMR-Wind x-axis
-            s += f"{self.postproc_name_hr}.{sampling_name}.axis2        = 0.0 {ydist_hr:.4f} 0.0\n"  # Assume: axis2 oriented parallel to AMR-Wind y-axis
-            s += f"{self.postproc_name_hr}.{sampling_name}.normal       = 0.0 0.0 1.0\n"
-            s += f"{self.postproc_name_hr}.{sampling_name}.offsets      = {zoffsets_hr_str}\n"
+            s += f"{self.postproc_name_hr}.{sampling_name}.type          = PlaneSampler\n"
+            s += f"{self.postproc_name_hr}.{sampling_name}.num_points    = {nx_hr} {ny_hr}\n"
+            s += f"{self.postproc_name_hr}.{sampling_name}.origin        = {xlow_hr:.4f} {ylow_hr:.4f} {zlow_hr:.4f}\n"  # Round the float output
+            s += f"{self.postproc_name_hr}.{sampling_name}.axis1         = {xdist_hr:.4f} 0.0 0.0\n"  # Assume: axis1 oriented parallel to AMR-Wind x-axis
+            s += f"{self.postproc_name_hr}.{sampling_name}.axis2         = 0.0 {ydist_hr:.4f} 0.0\n"  # Assume: axis2 oriented parallel to AMR-Wind y-axis
+            s += f"{self.postproc_name_hr}.{sampling_name}.offset_vector = 0.0 0.0 1.0\n"
+            s += f"{self.postproc_name_hr}.{sampling_name}.offsets       = {zoffsets_hr_str}\n"
 
 
         if out is None:
