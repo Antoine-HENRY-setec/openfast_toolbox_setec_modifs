@@ -182,6 +182,8 @@ def templateReplaceGeneral(PARAMS, templateDir=None, outputDir=None, main_file=N
                     else:
                         OutList=f[Key]
                         f[Key] = addToOutlist(OutList, ParamValue) # we insert
+            elif "nameholder" in Key:
+                pass  # added by AHE: ignore if it is a nameholder
             else:
                 f[Key] = ParamValue
         else:
@@ -233,8 +235,8 @@ def templateReplaceGeneral(PARAMS, templateDir=None, outputDir=None, main_file=N
         for p in PARAMS:
             temp = outputDir
             for iterator, folder in enumerate(FolderManagement):
-                stringprep = FolderManagement[iterator][1].format(p[FolderManagement[iterator][0]]).replace(".", "p")
-                stringprep = FolderManagement[iterator][2] + stringprep
+                stringprep_value = FolderManagement[iterator][1].format(p[FolderManagement[iterator][0]]).replace(".", "p")  #{format_code}.format(value)
+                stringprep = FolderManagement[iterator][2] + stringprep_value
                 temp = os.path.join(temp, stringprep)
             workDirS += [temp]
         # workDirS = [os.path.join(outputDir, FolderManagement[1].format(p[FolderManagement[0]])) for p in PARAMS]
